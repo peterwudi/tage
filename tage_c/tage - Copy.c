@@ -3,32 +3,17 @@
 #include <math.h>
 #include <assert.h>
 
-//#include "tage.h"
-
-
-typedef struct tageEntry {
-	int ctr;
-	unsigned int tag;
-	int u;
-} tageEntry;
-
-#define numTageTables 4
-
-tageEntry *tageTable[numTageTables] = {0};
-int tageTableTabBits[numTageTables] = {0};
-int tageTableTabBitsLog[numTageTables] = {0};
-int tageTableSize[numTageTables] = {7, 7, 8, 8};
-int tageHistLen[numTageTables] = {0};
+#include "tage.h"
 
 void main()
 {
-	int dir = 0;
+	char* dir = 0;
 
 	// These are fake
 	int baddr = 0;
 	int taken = 0;
 
-	tage_init();
+	my_predictor *tage = new_my_predictor();
 	for (;;)
 	{
 		dir = my_predictor_predict(tage, baddr);
@@ -41,32 +26,9 @@ void main()
 	}
 }
 
+
+//tagehook
 /* *********************** TAGE ************************* */
-void tage_init()
-{
-	int i = 0;
-	tageHistLen[0] = 4;
-	tageHistLen[numTageTables-1] = 640;
-
-	for (i = 1; i < numTageTables; i++)
-	{
-		p->m[i] =
-			(int) (((double) 4 *
-			pow ((double) (640) / (double) 4,
-			(double) (i - 1) / (double) ((numTageTables - 1)))) + 0.5);
-	}
-
-	tageTableTabBits[0] = 7;
-	tageTableTabBits[1] = 7;
-	tageTableTabBits[2] = 7 + 1;
-	tageTableTabBits[3] = 7 + 1;
-
-	tageTableTabBitsLog[0] = 3;
-	tageTableTabBitsLog[1] = 3;
-	tageTableTabBitsLog[2] = 3;
-	tageTableTabBitsLog[3] = 3;
-
-
 
 tage_folded_history *new_tage_folded_history()
 {
@@ -341,6 +303,33 @@ my_predictor *new_my_predictor()
 			p->gtable[i][j].u = 0;
 		}
 	}
+#if PRINT2
+	//for (i = 0; i < BUFFERHIST; i++)
+	//printf("%d, ", p->ghist[i]);
+
+	//for (i = 0; i <= NHIST; i++)
+	//{
+	//printf("%d, ", p->m[i]);
+	//printf("%d, ", p->TB[i]);
+	//printf("%d, ", p->logg[i]);
+	//}
+
+	//for (i = 0; i < (1 << LOGB); i++)
+	//{
+	//printf("%d, %d, ", p->btable[i].pred, p->btable[i].hyst);
+	//}
+
+	//for (i = 1; i <= NHIST; i++)
+	//{
+	//for (j = 0; j < (1 << p->logg[i]); j++)
+	//{
+	//printf("%d, %d, %d, ", p->gtable[i][j].ctr, p->gtable[i][j].tag, p->gtable[i][j].u);
+	//}
+
+	//printf("%d, %d, %d, %d, ", p->ch_i[i].comp, p->ch_i[i].OLENGTH, p->ch_i[i].CLENGTH, p->ch_i[i].OUTPOINT);
+	//}             
+
+#endif
 
 	return p;
 }

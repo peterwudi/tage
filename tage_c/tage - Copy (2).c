@@ -3,32 +3,178 @@
 #include <math.h>
 #include <assert.h>
 
-#include "tage.h"
+//#include "tage.h"
+
+/* class bentry */
+typedef struct bentry {
+	int hyst;
+	int pred;
+} bentry;
+
+typedef struct gentry {
+	int ctr;
+	unsigned int tag;
+	int u;
+} gentry;
+
+
+typedef struct tage_folded_history_struct {
+	unsigned comp;
+	int CLENGTH;
+	int OLENGTH;
+	int OUTPOINT;
+} tage_folded_history;
+
+#define numTageTables 4
+//#define NHIST 12                //12 tagged components
+#define LOGB 14                 // log of the number of entries in the base bimodal predictor
+#define HYSTSHIFT 2             // sharing an hysteris bit between 4 bimodal predictor entries
+#define LOGG (LOGB-3)           // base 2 logarithm of number of entries  on each tagged component
+#define TBITS 7                 // minimum tag width (shortest history length table)
+#define MINHIST 4               // shortest history length
+#define MAXHIST 640             // longest history length
+
+// See if these are useful
+int tag_needed = 0;
+int clock = 0;
+int g_clock = 0;
+int USE_ALT_ON_NA = 0;
+int Seed = 0;
+int counters[numTageTables] = {0}; 
+int LOGTICK = 0;
+int TICK = 0;
+int phist = 0;                      // use a path history as on  the OGEHL predictor
+int ptghist = 0;
+
+tage_folded_history ch_i[numTageTables];  //utility for computing TAGE indices
+tage_folded_history ch_t[2][numTageTables];       //utility for computing TAGE tags
+
+
+bentry *btable;         //bimodal TAGE table
+gentry *gtable[numTageTables];      // tagged TAGE tables
+
+int TB[numTageTables];              // tag width for the different tagged tables
+int m[numTageTables];               // used for storing the history lengths
+int logg[numTageTables];            // log of number entries of the different tagged tables
+int GI[numTageTables];              // indexes to the different tables are computed only once  
+int GTAG[numTageTables];            // tags for the different tables are computed only once  
+int BI;								// index of the bimodal table
+int Seed;							// for the pseudo-random number generator
+int pred_taken;						// prediction
+int alttaken;						// alternate  TAGEprediction
+int tage_pred;						// TAGE prediction
+int HitBank;						// longest matching bank
+int AltBank;						// alternate matching bank
 
 void main()
 {
-	char* dir = 0;
+	int dir = 0;
 
 	// These are fake
 	int baddr = 0;
 	int taken = 0;
 
-	my_predictor *tage = new_my_predictor();
+	tage_init();
 	for (;;)
 	{
-		dir = my_predictor_predict(tage, baddr);
-
-		//if ((MD_OP_FLAGS(op) & (F_CTRL|F_COND)) == (F_CTRL|F_COND))
-		{
-			my_predictor_update(tage, baddr, taken);
-		}
-		my_predictor_update_histories(tage, baddr, taken);
+		dir = tage_predict(tage, baddr);
+		tage_update(tage, baddr, taken);
+		tage_update_histories(tage, baddr, taken);
 	}
 }
 
-
-//tagehook
 /* *********************** TAGE ************************* */
+void tage_init()
+{
+	int i = 0;
+	int j = 0;
+
+	tag_needed = 0;
+	clock = 0;
+	g_clock = 0;
+
+	for (i = 0; i < numTageTables; i++)
+	{
+		counters[i] = 0;
+	}
+
+	USE_ALT_ON_NA = 0;
+	Seed = 0;
+	LOGTICK = 19;                //log of the period for useful tag smooth resetting
+	TICK = (1 << (LOGTICK - 1));      //initialize the resetting counter to the half of the period
+
+	phist = 0;	
+	ptghist = 0;
+
+	// computes the geometric history lengths   
+	m[0] = MINHIST;
+	m[numTageTables-1] = MAXHIST;
+
+	for (i = 1; i < numTageTables; i++)
+	{
+		m[i]=
+			(int) (((double) MINHIST *
+			pow ((double) (MAXHIST) / (double) MINHIST,
+			(double) (i - 1) / (double) ((numTageTables - 1)))) + 0.5);
+	}
+
+	//widths of the partial tags
+	TB[0] = TBITS;
+	TB[1] = TBITS;
+	TB[2] = TBITS + 1;
+	TB[3] = TBITS + 1;
+	//TB[5] = TBITS + 2;
+	//TB[6] = TBITS + 3;
+	//TB[7] = TBITS + 4;
+	//TB[8] = TBITS + 5;
+	//TB[9] = TBITS + 5;
+	//TB[10] = TBITS + 6;
+	//TB[11] = TBITS + 7;
+	//TB[12] = TBITS + 8;
+
+	// log2 of number entries in the tagged components
+	
+	logg[0] = LOGG-1;
+	logg[1] = LOGG-1;
+	logg[2] = LOGG;
+	logg[3] = LOGG;
+
+	//for (i = 1; i <= 2; i++)
+	//		logg[i] = LOGG - 1;
+	//for (i = 3; i <= 6; i++)
+	//		logg[i] = LOGG;
+	//for (i = 7; i <= 10; i++)
+	//		logg[i] = LOGG - 1;
+	//for (i = 11; i <= 12; i++)
+	//		logg[i] = LOGG - 2;
+
+	//initialisation of index and tag computation functions
+	for (i = 0; i < numTageTables; i++)
+	{
+		init_tage_folded_history (&(ch_i[i]), m[i], (logg[i]));
+		init_tage_folded_history (&(ch_t[0][i]), ch_i[i].OLENGTH, TB[i]);
+		init_tage_folded_history (&(ch_t[1][i]), ch_i[i].OLENGTH, TB[i] - 1);
+	}
+
+	//allocation of the predictor tables
+	btable = (bentry *)malloc((1 << LOGB) * sizeof(bentry));
+	for (i = 0; i < (1 << LOGB); i++)
+	{
+		btable[i].pred = 0;
+		btable[i].hyst = 1;
+	}
+
+	for (i = 0; i < numTageTables; i++)
+	{
+		gtable[i] = (gentry *)malloc((1 << (logg[i])) * sizeof(gentry));
+		for (j = 0; j < (1 << logg[i]); j++)
+		{
+			gtable[i][j].ctr = 0;
+			gtable[i][j].tag = 0;
+			gtable[i][j].u = 0;
+		}
+	}
+}
 
 tage_folded_history *new_tage_folded_history()
 {
@@ -51,9 +197,6 @@ void update_tage_folded_history(tage_folded_history *f, int *h)
     f->comp ^= (f->comp >> f->CLENGTH);
     f->comp &= (1 << f->CLENGTH) - 1;
 
-#if PRINT2
-        //printf("folded_update: %d, %d\n", h[0], h[f->OLENGTH]);
-#endif
 }
 /* ********************* */
 /* ********************* */
@@ -99,43 +242,40 @@ int bindex (int pc)
 
 // the index functions for the tagged tables uses path history as in the OGEHL predictor
 //F serves to mix path history
-int F (my_predictor *p, int A, int size, int bank)
+int F (int A, int size, int bank)
 {
     int A1, A2;
         int Ax = A;
 
     Ax = Ax & ((1 << size) - 1);
-    A1 = (Ax & ((1 << p->logg[bank]) - 1));
-    A2 = (Ax >> p->logg[bank]);
+    A1 = (Ax & ((1 << logg[bank]) - 1));
+    A2 = (Ax >> logg[bank]);
     A2 =
-        ((A2 << bank) & ((1 << p->logg[bank]) - 1)) + (A2 >> (p->logg[bank] - bank));
+        ((A2 << bank) & ((1 << logg[bank]) - 1)) + (A2 >> (logg[bank] - bank));
     Ax = A1 ^ A2;
-    Ax = ((Ax << bank) & ((1 << p->logg[bank]) - 1)) + (Ax >> (p->logg[bank] - bank));
+    Ax = ((Ax << bank) & ((1 << logg[bank]) - 1)) + (Ax >> (logg[bank] - bank));
     return (Ax);
 }
 
 // gindex computes a full hash of pc, ghist and phist
-int gindex (my_predictor *p, int pc, int bank)
+int gindex (int pc, int bank)
 {
     int index;
-    int M = (p->m[bank] > 16) ? 16 : p->m[bank];
+    int M = (m[bank] > 16) ? 16 : m[bank];
 
         index =
         pc ^ (pc >> (abs(p->logg[bank] - bank) + 1)) ^
-        p->ch_i[bank].comp ^ F (p, p->phist, M, bank);
+        ch_i[bank].comp ^ F (phist, M, bank);
 
-    return (index & ((1 << (p->logg[bank])) - 1));
+    return (index & ((1 << (logg[bank])) - 1));
 }
 
 //  tag computation
-unsigned int gtag (my_predictor *p, int pc, int bank)
+unsigned int gtag (int pc, int bank)
 {
         int tag = 0;
-        tag = pc ^ p->ch_t[0][bank].comp ^ (p->ch_t[1][bank].comp << 1);
+        tag = pc ^ ch_t[0][bank].comp ^ (p->ch_t[1][bank].comp << 1);
 
-#if PRINT2
-        //printf("gtag: %d, %d, %d\n", pc, p->ch_t[0][bank].comp, p->ch_t[1][bank].comp);
-#endif
     return (tag & ((1 << p->TB[bank]) - 1));
 }
 
@@ -187,9 +327,6 @@ void updateghist (my_predictor *p, int **h, int dir, int *tab, int *PT)
 {
         int i = 0;
 
-#if PRINT2
-        //printf("h: %u\n", *h);
-#endif
         if ((*PT) == 0)
         {
                 for (i = 0; i < MAXHIST; i++)
@@ -201,9 +338,6 @@ void updateghist (my_predictor *p, int **h, int dir, int *tab, int *PT)
         (*PT)--;
         (*h)--;
         (*h)[0] = (dir) ? 1 : 0;
-#if PRINT2 
-        //printf("updateghist: %d, %u\n", (*PT), h);
-#endif
 }
 
 my_predictor *new_my_predictor()
@@ -303,33 +437,6 @@ my_predictor *new_my_predictor()
 			p->gtable[i][j].u = 0;
 		}
 	}
-#if PRINT2
-	//for (i = 0; i < BUFFERHIST; i++)
-	//printf("%d, ", p->ghist[i]);
-
-	//for (i = 0; i <= NHIST; i++)
-	//{
-	//printf("%d, ", p->m[i]);
-	//printf("%d, ", p->TB[i]);
-	//printf("%d, ", p->logg[i]);
-	//}
-
-	//for (i = 0; i < (1 << LOGB); i++)
-	//{
-	//printf("%d, %d, ", p->btable[i].pred, p->btable[i].hyst);
-	//}
-
-	//for (i = 1; i <= NHIST; i++)
-	//{
-	//for (j = 0; j < (1 << p->logg[i]); j++)
-	//{
-	//printf("%d, %d, %d, ", p->gtable[i][j].ctr, p->gtable[i][j].tag, p->gtable[i][j].u);
-	//}
-
-	//printf("%d, %d, %d, %d, ", p->ch_i[i].comp, p->ch_i[i].OLENGTH, p->ch_i[i].CLENGTH, p->ch_i[i].OUTPOINT);
-	//}             
-
-#endif
 
 	return p;
 }

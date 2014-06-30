@@ -408,6 +408,16 @@ end
 //=====================================
 // TAGE
 //=====================================
+wire	tageRes;
+
+tage tage
+(
+	.clk						(clk),
+	.pc						(fetch_bpredictor_PC),
+	
+	.res						(tageRes)
+);
+
 
 
 `ifdef PreDecode

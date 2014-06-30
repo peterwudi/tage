@@ -180,12 +180,12 @@ module bpredTop(
 	input							execute_bpredictor_dir,
 	input							execute_bpredictor_miss,
 	input							execute_bpredictor_recover_ras,
-	input	[3:0]					execute_bpredictor_meta,
+	input	[13:0]				execute_bpredictor_meta,
 	
 	input							reset
 );
 
-parameter ghrSize				= 16;
+parameter ghrSize				= 1933;
 
 /*
 fetch_bpredictor_PC is to be used before clock edge
@@ -218,15 +218,27 @@ wire	[31:0]						TARGET_IMM26;
 reg	[31:0]						PC4;
 reg	[31:0]						PC4_r;
 reg	[3:0]							PCH4;
+reg	[ghrSize-1:0]				GHR;
 
 
-// 64 entries for now
+
+wire	[11:0]						lu_index;
+reg	[11:0]						lu_index_r;
+wire	[1:0]							lu_data;
+
+wire	[7:0]							up_index;
+wire	[31:0]						up_data;
 wire									up_wen;
+wire	[3:0]							up_be;
 
+wire	[1:0]							lu_bimodal_data;
+reg									lu_bimodal_data_h;
+reg	[1:0]							up_bimodal_data;
+reg	[7:0]							lu_bimodal_bun;
 
 wire	[31:0]						fetch_bpredictor_inst;
 
-reg	[ghrSize-1:0]				GHR;
+
 
 ras ras_inst(
 	.clk								(clk),
@@ -246,10 +258,6 @@ ras ras_inst(
 
 wire	[31:0] 	execute_bpredictor_PC	= execute_bpredictor_PC4 - 4;
 
-reg	[ghrSize*8-1:0]	execute_bpredictor_data		[1:0];
-reg	[ghrSize*8-1:0]	execute_bpredictor_data_c	[1:0];
-
-
 
 // ICache, this is a wrapper so the logic here is not included in area
 insnCache iCache(
@@ -268,6 +276,39 @@ initial begin
 	PCH4 = 0;
 	PC4 <= 4;
 end
+
+mem bimodal_mem
+(
+	.clock							(clk),
+
+	.rdaddress						(lu_index),
+	.q									(lu_data),
+
+//	.byteena_a						(up_be),
+	.wraddress						(up_index),
+	.data								(up_data),
+	.wren								(up_wen)
+);
+
+//=====================================
+// Bimodal Direction
+//=====================================
+
+assign lu_index						= fetch_bpredictor_PC[13:2];
+
+assign up_index						= execute_bpredictor_meta[11:0];
+assign up_data							= execute_bpredictor_meta[13:12];
+
+wire										lu_data_h;
+reg										lu_bimodal_data_h0;
+reg										lu_bimodal_data_h1;
+reg										lu_bimodal_data_h2;
+reg										lu_bimodal_data_h3;
+
+assign lu_data_h = lu_data[1];
+
+
+
 
 
 //=====================================
@@ -371,12 +412,12 @@ end
 
 `ifdef PreDecode
 // Predecoding branch direction
-assign bpredictor_fetch_p_dir = is_p_uncond | perceptronRes;
+assign bpredictor_fetch_p_dir = is_p_uncond | lu_bimodal_data_h;
 
 `else
 
 // Regurlar branch direction
-assign bpredictor_fetch_p_dir	= is_branch & (is_cond | is_ret | is_call) & perceptronRes;
+assign bpredictor_fetch_p_dir	= is_branch & (is_cond | is_ret | is_call) & lu_bimodal_data_h;
 
 `endif
 
@@ -389,6 +430,7 @@ assign up_wen	= reset | (~soin_bpredictor_stall & execute_bpredictor_update);
 always@( * )
 begin
 	PC4					= PC4_r + 4;
+	lu_bimodal_data_h					= lu_data_h;
 end
 
 always@(posedge clk)

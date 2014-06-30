@@ -21,12 +21,24 @@
 # Date created = 12:48:52  June 30, 2014
 #
 # -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		__dse_temp_rev_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
 
-QUARTUS_VERSION = "12.1"
-DATE = "12:48:52  June 30, 2014"
 
-# Revisions
-
-PROJECT_REVISION = "bpredTop"
-PROJECT_REVISION = "__dse_temp_rev_2"
-PROJECT_REVISION = "__dse_temp_rev"
+set_global_assignment -name FAMILY "Cyclone IV GX"
+set_global_assignment -name DEVICE AUTO
+set_global_assignment -name TOP_LEVEL_ENTITY __dse_temp_rev
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 12.1
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "12:48:52  JUNE 30, 2014"
+set_global_assignment -name LAST_QUARTUS_VERSION 12.1

@@ -27,6 +27,12 @@ reg					reset = 1'b0;
 reg					execute_bpredictor_recover_ras = 0;
 reg	[3:0]			execute_bpredictor_meta = 'b0;
 
+// TAGE
+logic	[31:0]		fakeTageInput;		
+
+logic					tageDir;
+logic	[3:0]			tageProvider;
+
 
 
 bpredTop dut(.*);

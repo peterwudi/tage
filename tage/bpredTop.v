@@ -182,10 +182,16 @@ module bpredTop(
 	input							execute_bpredictor_recover_ras,
 	input	[13:0]				execute_bpredictor_meta,
 	
+	// TAGE
+	input	[31:0]				fakeTageInput,
+	
+	output						tageDir,
+	output	[3:0]				tageProvider,
+	
 	input							reset
 );
 
-parameter ghrSize				= 1933;
+parameter ghrSize				= 640;
 
 /*
 fetch_bpredictor_PC is to be used before clock edge
@@ -408,15 +414,55 @@ end
 //=====================================
 // TAGE
 //=====================================
-wire	tageRes;
+wire	[11:0]		ch_i			[11:0];
+wire	[11:0]		ch_t0 		[11:0];
+wire	[11:0]		ch_t1			[11:0];
+wire	[15:0]		phist;
+wire	[19:0]		updateData;
+wire	[11:0]		updateIndex;
+wire	[11:0]		upWren;
 
+// TODO: THIS IS FAKE
+genvar i;
+generate
+	for (i = 0; i < 12; i = i + 1) begin: fakeTage
+		assign ch_i[i]		= fakeTageInput[11+i:i];
+		assign ch_t0[i]	= fakeTageInput[31-i:20-i];
+		assign ch_t1[i]	= fakeTageInput[17+i:6+i];
+	end
+endgenerate
+
+assign	phist			=	fakeTageInput[23:8];
+assign	updateData	=	fakeTageInput[28:9];
+assign	updateIndex	=	fakeTageInput[22:11];
+assign	upWren		=	fakeTageInput[19:8];
+
+// Predict
 tage tage
 (
-	.clk						(clk),
-	.pc						(fetch_bpredictor_PC),
+	.clk				(clk),
+	.reset			(reset),
+	.pc				(fetch_bpredictor_PC[31:2]),
+	.ch_i				(ch_i),
+	.ch_t0 			(ch_t0),
+	.ch_t1			(ch_t1),
+	.phist			(phist),
 	
-	.res						(tageRes)
+	.updateData		(updateData),
+	.updateIndex	(updateIndex),
+	.upWren			(upWren),
+	
+	.dir				(tageDir),
+	.provider		(tageProvider)
 );
+
+
+// Update
+
+
+
+
+
 
 
 

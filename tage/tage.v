@@ -1,15 +1,15 @@
 
 module tage
 {
-	input				clk;
-	input				reset;
-	input	[31:0]	pc;
-	input	[31:0]	ch_i		[11:0];
-	input [31:0]	ch_t0 	[11:0];
-	input	[31:0]	ch_t1		[11:0];
+	input				clk,
+	input				reset,
+	input	[31:0]	pc,
+	input	[11:0]	ch_i		[11:0],
+	input [11:0]	ch_t0 	[11:0],
+	input	[11:0]	ch_t1		[11:0],
 	
-	output			res;
-}
+	output			res
+};
 
 // Total storage for the submitted predictor
 // TAGE		2-bit ctr, 3-bit u
@@ -31,11 +31,18 @@ module tage
 // Total storage= 239,5Kbits + 1,337 = 246585 bits = 240.8kbits = 30.1kB
 
 
-reg	gindex = 
-
+wire	[11:0] gindex [11:0];
 
 tageHash tageHash
+{
+	.clk		(clk),
+	.reset	(reset),
+	.ch_i		(ch_i),
+	.ch_t0	(ch_t0),
+	.ch_t1	(ch_t1),
 
+	.gindex	(gindex)
+}
 
 
 
@@ -43,7 +50,7 @@ tageHash tageHash
 // 3 types of BRAMs
 // 18x1k, 16x2k, 20x512
 mem18_1k T1(
-	.clock (clk)),
+	.clock (clk),
 	.data(),
 	.rdaddress(),
 	.wraddress(),
@@ -69,5 +76,26 @@ end
 
 
 	
+endmodule
+
+
+module tageHash
+{
+	input					clk,
+	input					reset,
+	input		[11:0]	ch_i		[11:0],
+	input		[11:0]	ch_t0 	[11:0],
+	input		[11:0]	ch_t1		[11:0],
+
+	output	[11:0]	gindex	[11:0]
+};
+
+parameter [4*11-1:0] M = {4'b}
+
+
+
+
+
+
 endmodule
 

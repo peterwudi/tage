@@ -41,4 +41,4 @@ set_global_assignment -name DEVICE AUTO
 set_global_assignment -name TOP_LEVEL_ENTITY __dse_temp_rev_2
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 12.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "12:48:52  JUNE 30, 2014"
-set_global_assignment -name LAST_QUARTUS_VERSION 12.1
+set_global_assignment -name LAST_QUARTUS_VERSION "13.0 SP1"

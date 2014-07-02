@@ -195,51 +195,51 @@ endgenerate
 
 always @(*) begin
 	if (hitBank[11]) begin
-		dir 		= (tageTableData[11] >> (4 + tagBits[4*12-1:4*11]));
+		dir 		= (tageTableData[11] >> 19);
 		provider = 'd11;
 	end
 	else if (hitBank[10]) begin
-		dir = (tageTableData[10] >> (4 + tagBits[4*11-1:4*10]));
+		dir = (tageTableData[10] >> 18);
 		provider = 'd10;
 	end
 	else if (hitBank[9]) begin
-		dir = (tageTableData[9] >> (4 + tagBits[4*10-1:4*9]));
+		dir = (tageTableData[9] >> 17);
 		provider = 'd9;
 	end
 	else if (hitBank[8]) begin
-		dir = (tageTableData[8] >> (4 + tagBits[4*9-1:4*8]));
+		dir = (tageTableData[8] >> 16);
 		provider = 'd8;
 	end
 	else if (hitBank[7]) begin
-		dir = (tageTableData[7] >> (4 + tagBits[4*8-1:4*7]));
+		dir = (tageTableData[7] >> 16);
 		provider = 'd7;
 	end
 	else if (hitBank[6]) begin
-		dir = (tageTableData[6] >> (4 + tagBits[4*7-1:4*6]));
+		dir = (tageTableData[6] >> 15);
 		provider = 'd6;
 	end
 	else if (hitBank[5]) begin
-		dir = (tageTableData[5] >> (4 + tagBits[4*6-1:4*5]));
+		dir = (tageTableData[5] >> 14);
 		provider = 'd5;
 	end
 	else if (hitBank[4]) begin
-		dir = (tageTableData[4] >> (4 + tagBits[4*5-1:4*4]));
+		dir = (tageTableData[4] >> 13);
 		provider = 'd4;
 	end
 	else if (hitBank[3]) begin
-		dir = (tageTableData[3] >> (4 + tagBits[4*4-1:4*3]));
+		dir = (tageTableData[3] >> 12);
 		provider = 'd3;
 	end
 	else if (hitBank[2]) begin
-		dir = (tageTableData[2] >> (4 + tagBits[4*3-1:4*2]));
+		dir = (tageTableData[2] >> 12);
 		provider = 'd2;
 	end
 	else if (hitBank[1]) begin
-		dir = (tageTableData[1] >> (4 + tagBits[4*2-1:4*1]));
+		dir = (tageTableData[1] >> 11);
 		provider = 'd1;
 	end
 	else begin // if (hitBank[0])
-		dir = (tageTableData[0] >> (4 + tagBits[4*1-1:0]));
+		dir = (tageTableData[0] >> 11);
 		provider = 'd0;
 	end
 end

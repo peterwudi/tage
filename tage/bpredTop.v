@@ -442,7 +442,7 @@ tage tage
 (
 	.clk				(clk),
 	.reset			(reset),
-	.pc				(fetch_bpredictor_PC[31:2]),
+	.pc				(PC4_r[31:2]),
 	.ch_i				(ch_i),
 	.ch_t0 			(ch_t0),
 	.ch_t1			(ch_t1),

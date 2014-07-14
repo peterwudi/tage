@@ -25,13 +25,14 @@ reg	[31:0]		soin_bpredictor_debug_sel = 2'b00;
 
 reg					reset = 1'b0;
 reg					execute_bpredictor_recover_ras = 0;
-reg	[3:0]			execute_bpredictor_meta = 'b0;
+reg	[15:0]			execute_bpredictor_meta = 'b0;
 
 // TAGE
 logic	[31:0]		fakeTageInput;		
 
 logic					tageDir;
 logic	[3:0]			tageProvider;
+logic					override;
 
 
 

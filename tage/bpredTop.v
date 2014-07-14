@@ -180,13 +180,14 @@ module bpredTop(
 	input							execute_bpredictor_dir,
 	input							execute_bpredictor_miss,
 	input							execute_bpredictor_recover_ras,
-	input	[13:0]				execute_bpredictor_meta,
+	input	[15:0]				execute_bpredictor_meta,
 	
 	// TAGE
 	input	[31:0]				fakeTageInput,
 	
 	output						tageDir,
 	output	[3:0]				tageProvider,
+	output						override,
 	
 	input							reset
 );
@@ -296,6 +297,24 @@ mem bimodal_mem
 	.wren								(up_wen)
 );
 
+wire	[15:0]	sc_lu_data;
+wire	[15:0]	sc_up_data;
+
+scmem sc_mem
+(
+	.clock							(clk),
+
+	.rdaddress						(PC4_r[13:2]),
+	//.rdaddress						(lu_index),
+	.q									(sc_lu_data),
+
+	.wraddress						(up_index),
+	.data								(sc_up_data),
+	.wren								(up_wen)
+);
+
+assign override = (sc_lu_data == 'd1023) ? 1:0;
+
 //=====================================
 // Bimodal Direction
 //=====================================
@@ -304,6 +323,7 @@ assign lu_index						= fetch_bpredictor_PC[13:2];
 
 assign up_index						= execute_bpredictor_meta[11:0];
 assign up_data							= execute_bpredictor_meta[13:12];
+assign sc_up_data						= execute_bpredictor_meta[15:0];
 
 wire										lu_data_h;
 reg										lu_bimodal_data_h0;
@@ -443,6 +463,7 @@ tage tage
 	.clk				(clk),
 	.reset			(reset),
 	.pc				(PC4_r[31:2]),
+	//.pc				(fetch_bpredictor_PC[31:2]),
 	.ch_i				(ch_i),
 	.ch_t0 			(ch_t0),
 	.ch_t1			(ch_t1),

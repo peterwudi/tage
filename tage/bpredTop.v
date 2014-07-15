@@ -304,8 +304,8 @@ scmem sc_mem
 (
 	.clock							(clk),
 
-	.rdaddress						(PC4_r[13:2]),
-	//.rdaddress						(lu_index),
+	//.rdaddress						(PC4_r[13:2]),
+	.rdaddress						(lu_index),
 	.q									(sc_lu_data),
 
 	.wraddress						(up_index),
@@ -462,8 +462,8 @@ tage tage
 (
 	.clk				(clk),
 	.reset			(reset),
-	.pc				(PC4_r[31:2]),
-	//.pc				(fetch_bpredictor_PC[31:2]),
+	//.pc				(PC4_r[31:2]),
+	.pc				(fetch_bpredictor_PC[31:2]),
 	.ch_i				(ch_i),
 	.ch_t0 			(ch_t0),
 	.ch_t1			(ch_t1),
